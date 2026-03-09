@@ -20,10 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please provide both email and password"),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text("Enter email and password")),
       );
       return;
     }
@@ -32,10 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final result = await AuthService.login(email, pass);
-      setState(() => loading = false);
-
-      final role = result['role'] as String;
-      // id is stored internally by AuthService
+      final role = result['role'];
 
       if (role == "admin") {
         Navigator.pushReplacementNamed(context, '/admin');
@@ -43,62 +37,100 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/user');
       }
     } catch (e) {
-      setState(() => loading = false);
-      final msg = e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Login failed: $msg"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Login failed: $e")),
       );
-      debugPrint('login error shown to user: $msg');
     }
+
+    setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.apartment_rounded,
-                size: 80,
-                color: Color(0xFF6C63FF),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Welcome Back",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            /// TOP IMAGE SECTION
+            Stack(
+              children: [
+                SizedBox(
+                  height: 300,
+                  width: double.infinity,
+                  child: Image.network(
+                    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
-              const Text(
-                "Sign in to manage your hostels",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 40),
-              Card(
-                elevation: 4,
+                Container(
+                  height: 300,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFF0F172A).withOpacity(0.8),
+                        const Color(0xFF0F172A),
+                      ],
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  bottom: 30,
+                  left: 20,
+                  right: 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "HostelHub",
+                        style: TextStyle(
+                          fontSize: 36,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "Find your perfect stay or list your hostel.",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+
+            /// LOGIN CARD
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Card(
+                elevation: 6,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
+                      const Text(
+                        "Welcome back",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 25),
                       TextField(
                         controller: emailCtrl,
-                        keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: "Email",
-                          prefixIcon: Icon(Icons.email_outlined),
+                          prefixIcon: Icon(Icons.email),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -107,69 +139,50 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: true,
                         decoration: const InputDecoration(
                           labelText: "Password",
-                          prefixIcon: Icon(Icons.lock_outline),
+                          prefixIcon: Icon(Icons.lock),
                         ),
                       ),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,
-                        height: 54,
+                        height: 50,
                         child: ElevatedButton(
                           onPressed: loading ? null : login,
                           style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                            backgroundColor:
+                                const Color(0xFF6366F1), // Indigo 500
+                            foregroundColor: Colors.white,
                           ),
                           child: loading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text(
-                                  "Login",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : const Text("Sign In"),
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text("Don't have an account?"),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SignupScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text("Sign Up"),
+                          )
+                        ],
+                      )
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    "Don't have an account?",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignupScreen()),
-                      );
-                    },
-                    child: const Text(
-                      "Sign up",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6C63FF),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );

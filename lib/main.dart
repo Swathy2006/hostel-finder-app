@@ -20,19 +20,24 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Hostel App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C63FF)),
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          brightness: Brightness.dark,
+          seedColor: const Color(0xFF6366F1), // Indigo 500
+          surface: const Color(0xFF1E293B), // Slate 800
+        ),
         useMaterial3: true,
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.transparent,
-          foregroundColor: Colors.black87,
+          foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6C63FF),
+            backgroundColor: const Color(0xFF6366F1), // Indigo 500
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             shape: RoundedRectangleBorder(
@@ -43,27 +48,29 @@ class MyApp extends StatelessWidget {
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: const Color(0xFF334155), // Slate 700
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
+            borderSide: BorderSide(color: Colors.transparent),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF6C63FF), width: 2),
+            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 18,
           ),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)), // Slate 400
+          labelStyle: const TextStyle(color: Color(0xFF94A3B8)), // Slate 400
         ),
         cardTheme: const CardThemeData(
-          color: Colors.white,
-          elevation: 2,
+          color: Color(0xFF1E293B), // Surface Color
+          elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(20)),
           ),
