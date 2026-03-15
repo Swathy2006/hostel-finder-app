@@ -4,10 +4,14 @@
     <application
         android:label="test_app"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <meta-data
          android:name="com.google.android.geo.API_KEY"
          android:value="AIzaSyBUuZMUtbwHui10VMpNJMXhlJeNIuSiaLA"/>
+        <meta-data
+            android:name="io.flutter.app.android.EnableImpeller"
+            android:value="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

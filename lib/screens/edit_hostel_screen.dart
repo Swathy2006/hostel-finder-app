@@ -9,8 +9,15 @@ import 'map_picker.dart';
 
 class EditHostelScreen extends StatefulWidget {
   final Map<String, dynamic> hostel;
+  final String? prefilledDistrict;
+  final String? prefilledCity;
 
-  const EditHostelScreen({super.key, required this.hostel});
+  const EditHostelScreen({
+    super.key,
+    required this.hostel,
+    this.prefilledDistrict,
+    this.prefilledCity,
+  });
 
   @override
   State<EditHostelScreen> createState() => _EditHostelScreenState();
@@ -31,13 +38,19 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
   double? lng;
 
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _selectedImages = [];
-  List<XFile> _selectedVideos = [];
+  final List<XFile> _selectedImages = [];
+  final List<XFile> _selectedVideos = [];
   List<String> _existingImages = [];
   List<String> _existingVideos = [];
 
   final totalRoomsCtrl = TextEditingController();
   final capacityCtrl = TextEditingController();
+  final vacantRoomsCtrl = TextEditingController();
+
+  String selectedGender = "mixed";
+
+  String? district;
+  String? city;
 
   bool loading = false;
 
@@ -51,6 +64,9 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
     addressCtrl = TextEditingController(text: h['address'] ?? '');
     ownerNameCtrl = TextEditingController(text: h['ownerName'] ?? '');
     contactCtrl = TextEditingController(text: h['contactNo'] ?? '');
+
+    district = widget.prefilledDistrict ?? h['district'];
+    city = widget.prefilledCity ?? h['city'];
 
     if (h['facilities'] is List) {
       facilities = List<String>.from(h['facilities']);
@@ -66,25 +82,44 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
     rooms = [];
 
     // Map existing data to RoomEntries
-    if (h['rentSingle'] != null && (h['rentSingle'] as num) > 0) {
-      rooms.add(
-        RoomEntry(type: 'single')
-          ..rentCtrl.text = h['rentSingle'].toString()
-          ..vacancyCtrl.text = (h['vacancySingle'] ?? 0).toString()
-          ..totalRoomsCtrl.text = (h['totalRoomsSingle'] ?? 0).toString(),
-      );
-    }
+    if (h['rooms'] != null && (h['rooms'] as List).isNotEmpty) {
+      for (var r in (h['rooms'] as List)) {
+        String sharingVal = (r['sharingCount'] ?? 1).toString();
+        // Ensure sharingVal is within the supported dropdown range (1-5)
+        if (!['1', '2', '3', '4', '5'].contains(sharingVal)) {
+          sharingVal = '2'; // Default to 2 if out of range to prevent crash
+        }
 
-    if (h['rentShared'] != null && (h['rentShared'] as num) > 0) {
-      // For shared, if we have granular data, we could map it.
-      // For now let's assume one shared entry or fallback.
-      final shCount = h['sharedCount'] ?? 2;
-      rooms.add(
-        RoomEntry(type: 'shared', sharingCount: shCount)
-          ..rentCtrl.text = h['rentShared'].toString()
-          ..vacancyCtrl.text = (h['vacancyShared'] ?? 0).toString()
-          ..totalRoomsCtrl.text = (h['totalRoomsShared'] ?? 0).toString(),
-      );
+        rooms.add(
+          RoomEntry(
+            type: r['type'] ?? 'single',
+            sharing: sharingVal,
+          )
+            ..rentCtrl.text = (r['rent'] ?? 0).toString()
+            ..vacancyCtrl.text = (r['vacancy'] ?? 0).toString()
+            ..totalRoomsCtrl.text = (r['totalRooms'] ?? 0).toString(),
+        );
+      }
+    } else {
+      // Fallback to legacy fields
+      if (h['rentSingle'] != null && (h['rentSingle'] as num) > 0) {
+        rooms.add(
+          RoomEntry(type: 'single')
+            ..rentCtrl.text = h['rentSingle'].toString()
+            ..vacancyCtrl.text = (h['vacancySingle'] ?? 0).toString()
+            ..totalRoomsCtrl.text = (h['totalRoomsSingle'] ?? 0).toString(),
+        );
+      }
+
+      if (h['rentShared'] != null && (h['rentShared'] as num) > 0) {
+        final shCount = h['sharedCount'] ?? 2;
+        rooms.add(
+          RoomEntry(type: 'shared', sharing: shCount.toString())
+            ..rentCtrl.text = h['rentShared'].toString()
+            ..vacancyCtrl.text = (h['vacancyShared'] ?? 0).toString()
+            ..totalRoomsCtrl.text = (h['totalRoomsShared'] ?? 0).toString(),
+        );
+      }
     }
 
     if (rooms.isEmpty) {
@@ -100,7 +135,10 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
     }
 
     totalRoomsCtrl.text = (h['totalRooms'] ?? 0).toString();
-    capacityCtrl.text = (h['totalCapacity'] ?? 0).toString();
+    capacityCtrl.text =
+        (h['totalMembers'] ?? h['totalCapacity'] ?? 0).toString();
+    vacantRoomsCtrl.text = (h['vacantRooms'] ?? 0).toString();
+    selectedGender = h['gender'] ?? "Mixed";
   }
 
   @override
@@ -115,9 +153,11 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
       r.rentCtrl.dispose();
       r.vacancyCtrl.dispose();
       r.totalRoomsCtrl.dispose();
+      r.sharingCountCtrl.dispose();
     }
     totalRoomsCtrl.dispose();
     capacityCtrl.dispose();
+    vacantRoomsCtrl.dispose();
 
     super.dispose();
   }
@@ -167,6 +207,14 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
       return;
     }
 
+    final phone = contactCtrl.text.trim();
+    if (phone.length != 10 || int.tryParse(phone) == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Phone number must be exactly 10 digits")),
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
     try {
@@ -177,6 +225,9 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
       changes['ownerName'] = ownerNameCtrl.text.trim();
       changes['contactNo'] = contactCtrl.text.trim();
       changes['facilities'] = facilities;
+
+      if (district != null) changes['district'] = district;
+      if (city != null) changes['city'] = city;
 
       if (lat != null && lng != null) {
         changes['lat'] = lat;
@@ -193,15 +244,26 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
 
         totalVac += vac;
 
-        if (r.type == 'single') rentSingle = rent;
-        if (r.type == 'shared') rentShared = rent;
+        if (r.type == 'single') {
+          if (rentSingle == 0 || (rent > 0 && rent < rentSingle)) {
+            rentSingle = rent;
+          }
+        }
+        if (r.type == 'shared') {
+          if (rentShared == 0 || (rent > 0 && rent < rentShared)) {
+            rentShared = rent;
+          }
+        }
       }
 
       changes['rentSingle'] = rentSingle;
       changes['rentShared'] = rentShared;
       changes['vacancy'] = totalVac;
-      changes['totalRooms'] = int.tryParse(totalRoomsCtrl.text) ?? 0;
-      changes['totalCapacity'] = int.tryParse(capacityCtrl.text) ?? 0;
+      changes['rooms'] = rooms.map((r) => r.toJson()).toList();
+      changes['totalRooms'] = int.tryParse(totalRoomsCtrl.text.trim()) ?? 0;
+      changes['totalMembers'] = int.tryParse(capacityCtrl.text.trim()) ?? 0;
+      changes['vacantRooms'] = int.tryParse(vacantRoomsCtrl.text.trim()) ?? 0;
+      changes['gender'] = selectedGender;
 
       // Note: Backend might need update to handle granular rooms, existing vs new images, etc.
       // Filtering out empty images
@@ -216,19 +278,39 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
       changes['newImagePaths'] = newImagePaths;
       changes['newVideoPaths'] = newVideoPaths;
 
-      final success = await HostelService.updateHostel(
-        widget.hostel['_id'],
-        changes,
-      );
+      final bool isPublished = widget.hostel['isApproved'] == true;
+      bool success;
+
+      if (isPublished) {
+        success = await HostelService.submitEditRequest(
+          widget.hostel['_id'],
+          changes,
+        );
+      } else {
+        success = await HostelService.updateHostel(
+          widget.hostel['_id'],
+          changes,
+        );
+      }
 
       setState(() => loading = false);
 
       if (success) {
         if (mounted) {
+          final msg = isPublished
+              ? "Edit request submitted for admin approval!"
+              : "Hostel updated successfully!";
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Hostel updated successfully!")),
+            SnackBar(content: Text(msg)),
           );
-          Navigator.pop(context);
+          Navigator.pop(context, true);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text("Failed to submit changes. Please try again.")),
+          );
         }
       }
     } catch (e) {
@@ -349,36 +431,27 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Sharing Type",
+                    const Text("Room Type",
                         style: TextStyle(color: Colors.grey, fontSize: 12)),
                     const SizedBox(height: 8),
                     DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: r.type == 'single'
-                            ? 'single'
-                            : '${r.sharingCount}_shared',
+                        value: r.type,
                         dropdownColor: const Color(0xFF1E293B),
-                        items: [
-                          const DropdownMenuItem(
+                        items: const [
+                          DropdownMenuItem<String>(
                               value: "single", child: Text("Single")),
-                          const DropdownMenuItem(
-                              value: "2_shared", child: Text("2 Shared")),
-                          const DropdownMenuItem(
-                              value: "3_shared", child: Text("3 Shared")),
-                          const DropdownMenuItem(
-                              value: "4_shared", child: Text("4 Shared")),
-                          const DropdownMenuItem(
-                              value: "5_shared", child: Text("5 Shared")),
+                          DropdownMenuItem<String>(
+                              value: "shared", child: Text("Shared")),
                         ],
                         onChanged: (val) {
                           if (val == null) return;
                           setState(() {
+                            r.type = val;
                             if (val == 'single') {
-                              r.type = 'single';
-                              r.sharingCount = 1;
-                            } else {
-                              r.type = 'shared';
-                              r.sharingCount = int.parse(val.split('_')[0]);
+                              r.sharingCountCtrl.text = '1';
+                            } else if (r.sharingCountCtrl.text == '1') {
+                              r.sharingCountCtrl.text = '2';
                             }
                           });
                         },
@@ -387,6 +460,19 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
                   ],
                 ),
               ),
+              if (r.type == 'shared') ...[
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: r.sharingCountCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Sharing Count',
+                      prefixIcon: Icon(Icons.groups_rounded, size: 18),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 20),
@@ -481,6 +567,28 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: selectedGender,
+                        decoration: const InputDecoration(
+                          labelText: "Gender Category",
+                          prefixIcon: Icon(Icons.people_outline_rounded),
+                        ),
+                        dropdownColor: const Color(0xFF1E293B),
+                        items: ["Boys", "Girls", "Mixed"]
+                            .map((e) => DropdownMenuItem<String>(
+                                  value: e,
+                                  child: Text(e,
+                                      style:
+                                          const TextStyle(color: Colors.white)),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedGender = val!;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       TextField(
                         controller: ownerNameCtrl,
                         decoration: const InputDecoration(
@@ -515,13 +623,44 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
                           prefixIcon: Icon(Icons.people_rounded),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: vacantRoomsCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Vacant Number of Rooms',
+                          prefixIcon: Icon(Icons.meeting_room_outlined),
+                        ),
+                      ),
                     ],
                   ),
                 ),
 
+                /// X. Pre-Selected / Current Location Info
+                if (district != null && city != null)
+                  _buildSectionCard(
+                    title: "Selected Region",
+                    icon: Icons.map_rounded,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "District: $district\nCity: $city",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                        const Icon(Icons.check_circle_rounded,
+                            color: Color(0xFF6366F1), size: 32),
+                      ],
+                    ),
+                  ),
+
                 /// 2. Location Card
                 _buildSectionCard(
-                  title: "Location",
+                  title: "Location Link",
                   icon: Icons.location_on_rounded,
                   child: Column(
                     children: [
@@ -803,9 +942,11 @@ class _EditHostelScreenState extends State<EditHostelScreen> {
                     ),
                     child: loading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            "Save Changes",
-                            style: TextStyle(
+                        : Text(
+                            widget.hostel['isApproved'] == true
+                                ? "Submit for Change"
+                                : "Save Changes",
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1,

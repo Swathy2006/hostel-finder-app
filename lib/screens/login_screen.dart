@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/responsive.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -55,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Stack(
               children: [
                 SizedBox(
-                  height: 300,
+                  height: Responsive.isMobile(context) ? 250 : 400,
                   width: double.infinity,
                   child: Image.network(
                     "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
@@ -63,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Container(
-                  height: 300,
+                  height: Responsive.isMobile(context) ? 250 : 400,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -108,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             /// LOGIN CARD
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(Responsive.isMobile(context) ? 16 : 32),
               child: Card(
                 elevation: 6,
                 shape: RoundedRectangleBorder(

@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/login_screen.dart';
 import 'screens/admin_dashboard.dart';
-import 'screens/user_dashboard.dart';
+import 'screens/user_application_screen.dart';
 import 'screens/create_hostel_screen.dart';
+import 'screens/admin_manage_publish_screen.dart';
+import 'screens/user_dashboard.dart';
 import 'screens/signup_screen.dart';
 
 void main() {
@@ -83,7 +85,9 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/admin': (context) => const AdminDashboard(),
         '/user': (context) => const UserDashboard(),
+        '/history': (context) => const UserApplicationScreen(),
         '/createHostel': (context) => const CreateHostelScreen(),
+        '/adminManageHostels': (context) => const AdminManagePublishScreen(),
       },
     );
   }

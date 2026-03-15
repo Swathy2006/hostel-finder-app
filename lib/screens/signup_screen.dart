@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/responsive.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -15,6 +16,25 @@ class _SignupScreenState extends State<SignupScreen> {
 
   String role = "user";
   bool loading = false;
+  bool _adminExists = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final exists = await AuthService.checkAdminExists();
+    if (mounted) {
+      setState(() {
+        _adminExists = exists;
+        if (exists) {
+          role = "user"; // Force to user if admin exists
+        }
+      });
+    }
+  }
 
   Future<void> signup() async {
     final name = nameCtrl.text.trim();
@@ -26,6 +46,22 @@ class _SignupScreenState extends State<SignupScreen> {
         const SnackBar(content: Text("All fields required")),
       );
       return;
+    }
+
+    if (role == "admin") {
+      // Must be strictly alphanumeric, >=8 chars, >=1 uppercase, >=1 lowercase, >=1 digit
+      final RegExp regex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$');
+      if (!regex.hasMatch(pass)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Admin password must be 8+ characters, with at least one uppercase letter, one lowercase letter, one number, and absolutely NO special characters.",
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => loading = true);
@@ -57,7 +93,7 @@ class _SignupScreenState extends State<SignupScreen> {
             Stack(
               children: [
                 SizedBox(
-                  height: 300,
+                  height: Responsive.isMobile(context) ? 250 : 400,
                   width: double.infinity,
                   child: Image.network(
                     "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
@@ -65,7 +101,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 Container(
-                  height: 300,
+                  height: Responsive.isMobile(context) ? 250 : 400,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -96,7 +132,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
             /// SIGNUP CARD
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(Responsive.isMobile(context) ? 16 : 32),
               child: Card(
                 elevation: 6,
                 shape: RoundedRectangleBorder(
@@ -139,27 +175,37 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      DropdownButtonFormField<String>(
-                        value: role,
-                        decoration: const InputDecoration(
-                          labelText: "Account Type",
+                      if (!_adminExists)
+                        DropdownButtonFormField<String>(
+                          value: role,
+                          decoration: const InputDecoration(
+                            labelText: "Account Type",
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: "user",
+                              child: Text("User"),
+                            ),
+                            DropdownMenuItem(
+                              value: "admin",
+                              child: Text("Admin"),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              role = val!;
+                            });
+                          },
+                        )
+                      else
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            "An Admin account already exists. You may only register as a User.",
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: "user",
-                            child: Text("User"),
-                          ),
-                          DropdownMenuItem(
-                            value: "admin",
-                            child: Text("Admin"),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            role = val!;
-                          });
-                        },
-                      ),
                       const SizedBox(height: 30),
                       SizedBox(
                         width: double.infinity,

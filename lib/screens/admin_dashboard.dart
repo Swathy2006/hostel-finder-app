@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'hostel_details_screen.dart';
-import '../services/hostel_service.dart';
 import '../services/auth_service.dart';
+import '../utils/responsive.dart';
+import '../utils/location_data.dart';
+import 'my_hostels_screen.dart';
+import 'admin_profile_screen.dart';
+import 'admin_applications_screen.dart';
+import 'admin_manage_bookings_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -11,123 +15,191 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  bool loading = true;
-  List<dynamic> myHostels = [];
-  int _selectedIndex = 0; // 0 for Home Page, 1 for My Hostel
 
-  @override
-  void initState() {
-    super.initState();
-    _loadMyHostels();
+  void _showLocationSelectionDialog(BuildContext context) {
+    String? selectedDistrict;
+    String? selectedCity;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                "Select Hostel Location",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: "District",
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    dropdownColor: const Color(0xFF0F172A),
+                    value: selectedDistrict,
+                    items: keralaDistrictsAndCities.keys.map((district) {
+                      return DropdownMenuItem(
+                        value: district,
+                        child: Text(district, style: const TextStyle(color: Colors.white)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedDistrict = val;
+                        selectedCity = null; 
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: "City",
+                      filled: true,
+                      fillColor: const Color(0xFF0F172A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    dropdownColor: const Color(0xFF0F172A),
+                    value: selectedCity,
+                    items: selectedDistrict == null
+                        ? []
+                        : keralaDistrictsAndCities[selectedDistrict]!
+                            .map((city) {
+                            return DropdownMenuItem(
+                              value: city,
+                              child: Text(city, style: const TextStyle(color: Colors.white)),
+                            );
+                          }).toList(),
+                    onChanged: selectedDistrict == null
+                        ? null
+                        : (val) {
+                            setDialogState(() {
+                              selectedCity = val;
+                            });
+                          },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: selectedDistrict != null && selectedCity != null
+                      ? () async {
+                          Navigator.pop(context);
+                          await Navigator.pushNamed(
+                            context,
+                            '/createHostel',
+                            arguments: {
+                              'district': selectedDistrict,
+                              'city': selectedCity,
+                            },
+                          );
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEAB308), // Yellow
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text("Continue", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
-  Future<void> _loadMyHostels() async {
-    final ownerId = AuthService.currentUserId ?? '';
-    final list = await HostelService.getHostelsByOwner(ownerId);
-    setState(() {
-      myHostels = list;
-      loading = false;
-    });
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    Navigator.pop(context); // Close the drawer
-  }
-
-  Widget _buildHomePage() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildWelcomeCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Row(
         children: [
-          const Text(
-            "Overview",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFEAB308).withOpacity(0.15),
+              border: Border.all(color: const Color(0xFFEAB308).withOpacity(0.5), width: 1.5),
+            ),
+            child: const Center(
+              child: Text(
+                "A",
+                style: TextStyle(
+                  color: Color(0xFFEAB308),
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            "Publish a new accommodation",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          const SizedBox(height: 32),
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Welcome back,",
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Admin",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () async {
-                await Navigator.pushNamed(context, '/createHostel');
-                _loadMyHostels(); // refresh list when returning
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF1E293B),
-                      const Color(0xFF334155).withOpacity(0.5),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add_business_rounded,
-                        color: Color(0xFF6366F1), // Indigo 500
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Add New Hostel",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Create a new listing with rooms and pricing",
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                  ],
-                ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFEAB308).withOpacity(0.5)),
+            ),
+            child: const Text(
+              "ADMIN",
+              style: TextStyle(
+                color: Color(0xFFEAB308),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
               ),
             ),
           ),
@@ -136,163 +208,110 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildHostelPage() {
+  Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "My Hostels", // Updated label
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "Manage and edit your published listings",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : myHostels.isEmpty
-                    ? const Center(child: Text('No hostels created yet'))
-                    : ListView.builder(
-                        itemCount: myHostels.length,
-                        itemBuilder: (context, index) {
-                          final h = myHostels[index];
-                          final name = h['name'] ?? 'Unnamed';
-                          final addressUrl = h['address'] ?? '';
-                          final isGoogleMapLink =
-                              addressUrl.toString().contains('google.com/maps');
+      padding: const EdgeInsets.only(top: 32, bottom: 16, left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
 
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 10),
-                            elevation: 6,
-                            shadowColor: Colors.black45,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+  Widget _buildActionTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool showLiveBadge = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withOpacity(0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: iconColor.withOpacity(0.2)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 28),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                            child: InkWell(
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => HostelDetailsScreen(
-                                      hostel: h,
-                                      isAdminView: true,
-                                    ),
-                                  ),
-                                );
-                                _loadMyHostels();
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            name,
-                                            style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.5,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const Icon(Icons.visibility_rounded,
-                                            color: Color(0xFF8B5CF6), size: 28),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 20),
-                                    // Mini Stats Row
-                                    Row(
-                                      children: [
-                                        _buildMiniStatTile(
-                                          icon: Icons.meeting_room_rounded,
-                                          value: "${h['totalRooms'] ?? 'N/A'}",
-                                          label: "Total Rooms",
-                                        ),
-                                        const SizedBox(width: 12),
-                                        _buildMiniStatTile(
-                                          icon: Icons.currency_rupee_rounded,
-                                          value:
-                                              "₹${h['rentSingle'] ?? h['rentShared'] ?? '0'}",
-                                          label: "Price / Mo",
-                                        ),
-                                        const SizedBox(width: 12),
-                                        _buildMiniStatTile(
-                                          icon: Icons.people_alt_rounded,
-                                          value:
-                                              "${h['totalCapacity'] ?? 'N/A'}",
-                                          label: "Capacity",
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 20),
-                                    if (isGoogleMapLink)
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: IgnorePointer(
-                                          child: ElevatedButton.icon(
-                                            onPressed: () {},
-                                            icon: const Icon(Icons.map_rounded),
-                                            label: const Text("View on Maps"),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF1E293B),
-                                              foregroundColor:
-                                                  const Color(0xFF6366F1),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 14),
-                                              elevation: 0,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                side: const BorderSide(
-                                                    color: Color(0xFF334155)),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    else if (addressUrl.isNotEmpty)
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.location_on_rounded,
-                                              color: Colors.grey, size: 18),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              addressUrl,
-                                              style: const TextStyle(
-                                                  color: Colors.grey),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
+                          ),
+                          if (showLiveBadge) ...[
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.greenAccent.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.greenAccent.withOpacity(0.3)),
+                              ),
+                              child: const Text(
+                                "LIVE",
+                                style: TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: iconColor,
+                  size: 16,
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -300,127 +319,99 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0 ? "Admin Dashboard" : "My Hostel",
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "Admin Dashboard",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Logout',
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              icon: const Icon(Icons.person_rounded, color: Color(0xFFEAB308), size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+                );
+              },
+            ),
+          )
         ],
       ),
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF1E293B),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color(0xFF0F172A),
-                image: DecorationImage(
-                  image: AssetImage('assets/images/admin_bg.png'),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    Colors.black54,
-                    BlendMode.darken,
-                  ),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Admin Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home_rounded, color: Colors.white),
-              title: const Text('Home Page',
-                  style: TextStyle(color: Colors.white)),
-              selectedTileColor: const Color(0xFF334155),
-              selected: _selectedIndex == 0,
-              onTap: () => _onItemTapped(0),
-            ),
-            ListTile(
-              leading: const Icon(Icons.business_rounded, color: Colors.white),
-              title: const Text('My Hostel',
-                  style: TextStyle(color: Colors.white)),
-              selectedTileColor: const Color(0xFF334155),
-              selected: _selectedIndex == 1,
-              onTap: () => _onItemTapped(1),
-            ),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          // Background Image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/admin_bg.png',
-              fit: BoxFit.cover,
-            ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: Responsive.isMobile(context) ? 20.0 : 32.0,
+            vertical: 24.0,
           ),
-          // Dark overlay to ensure text readability
-          Positioned.fill(
-            child: Container(
-              color: const Color(0xFF0F172A).withOpacity(0.85),
-            ),
-          ),
-          // Main content
-          _selectedIndex == 0 ? _buildHomePage() : _buildHostelPage(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniStatTile(
-      {required IconData icon, required String value, required String label}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF334155)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: const Color(0xFF8B5CF6), size: 18),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeCard(),
+              
+              _buildSectionHeader("MANAGEMENT"),
+              
+              _buildActionTile(
+                icon: Icons.assignment_ind_rounded,
+                iconColor: const Color(0xFFF97316), // Orange
+                title: "Hostel Applicants",
+                subtitle: "Review incoming user requests to\nadd a new hostel.",
+                showLiveBadge: true,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminApplicationsScreen()),
+                  );
+                },
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.grey, fontSize: 10),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              
+              _buildActionTile(
+                icon: Icons.business_rounded,
+                iconColor: const Color(0xFF3B82F6), // Blue
+                title: "Manage Published Hostels",
+                subtitle: "View published hostels and review\nrequested changes.",
+                onTap: () {
+                  Navigator.pushNamed(context, '/adminManageHostels');
+                },
+              ),
+              
+              _buildActionTile(
+                icon: Icons.receipt_long_rounded,
+                iconColor: const Color(0xFF10B981), // Green
+                title: "Manage Bookings",
+                subtitle: "View, confirm or reject booking\nrequests.",
+                showLiveBadge: true,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminManageBookingsScreen()),
+                  );
+                },
+              ),
+              
+              _buildActionTile(
+                icon: Icons.manage_accounts_rounded,
+                iconColor: const Color(0xFFA855F7), // Purple
+                title: "My Profile",
+                subtitle: "Edit your admin account details.",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+                  );
+                },
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
